@@ -1,0 +1,107 @@
+{
+    "cost": 1,
+    "joints": {
+        "#top": {
+            "location": [
+                4,
+                0
+            ],
+            "direction": [
+                0,
+                1
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                {
+                    "id": "shaft/vertical",
+                    "joint": "#bottom",
+                    "weight": 100
+                },
+                {
+                    "id": "misc/chain",
+                    "joint": "#chain",
+                    "weight": 100
+                }
+            ]
+        },
+        "#bottom": {
+            "location": [
+                4,
+                8
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                {
+                    "id": "shaft/vertical",
+                    "joint": "#top",
+                    "weight": 100
+                }
+            ]
+        },
+        "#left": {
+            "location": [
+                0,
+                4
+            ],
+            "direction": [
+                -1,
+                0
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                {
+                    "id": "shaft/horizontal",
+                    "joint": "#right",
+                    "weight": 100
+                }
+            ]
+        },
+        "#right": {
+            "location": [
+                8,
+                4
+            ],
+            "direction": [
+                1,
+                0
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                {
+                    "id": "shaft/horizontal",
+                    "joint": "#left",
+                    "weight": 100
+                }
+            ]
+        }
+    },
+    "placement-constraints": [
+        "underground"
+    ],
+    "color-to-tile-mapping": {
+        "structure/void": [
+            0,
+            0,
+            0
+        ],
+        "blocks/background": [
+            64,
+            64,
+            64
+        ],
+        "blocks/wall": [
+            160,
+            160,
+            160
+        ],
+        "structure/joint": [
+            255,
+            0,
+            0
+        ]
+    }
+}

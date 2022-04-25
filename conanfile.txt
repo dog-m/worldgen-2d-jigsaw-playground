@@ -1,0 +1,6 @@
+[requires]
+raylib/3.5.0
+nlohmann_json/3.10.5
+
+[generators]
+cmake

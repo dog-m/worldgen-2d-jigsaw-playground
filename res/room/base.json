@@ -1,0 +1,140 @@
+{
+    "cost": 0,
+    "joints": {
+        "#floor": {
+            "location": [
+                20,
+                18
+            ],
+            "direction": [
+                0,
+                0
+            ],
+            "replace-by": "blocks/background",
+            "structures": []
+        },
+        "#shaft": {
+            "location": [
+                20,
+                26
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                {
+                    "id": "shaft/vertical",
+                    "joint": "#top",
+                    "weight": 150
+                },
+                {
+                    "id": "shaft/junction/all",
+                    "joint": "#top",
+                    "weight": 50
+                }
+            ]
+        },
+        "#support-L1": {
+            "location": [
+                8,
+                19
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/wall",
+            "structures": [
+                {
+                    "id": "misc/support-soil",
+                    "joint": "#support",
+                    "weight": 100
+                }
+            ]
+        },
+        "#support-L2": {
+            "location": [
+                9,
+                19
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/wall",
+            "structures": [
+                {
+                    "id": "misc/support-soil",
+                    "joint": "#support",
+                    "weight": 100
+                }
+            ]
+        },
+        "#support-R1": {
+            "location": [
+                31,
+                19
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/wall",
+            "structures": [
+                {
+                    "id": "misc/support-soil",
+                    "joint": "#support",
+                    "weight": 100
+                }
+            ]
+        },
+        "#support-R2": {
+            "location": [
+                32,
+                19
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/wall",
+            "structures": [
+                {
+                    "id": "misc/support-soil",
+                    "joint": "#support",
+                    "weight": 100
+                }
+            ]
+        }
+    },
+    "placement-constraints": [],
+    "color-to-tile-mapping": {
+        "structure/void": [
+            0,
+            0,
+            0
+        ],
+        "blocks/air": [
+            0,
+            148,
+            255
+        ],
+        "blocks/background": [
+            96,
+            96,
+            96
+        ],
+        "blocks/wall": [
+            192,
+            192,
+            192
+        ],
+        "structure/joint": [
+            255,
+            0,
+            0
+        ]
+    }
+}

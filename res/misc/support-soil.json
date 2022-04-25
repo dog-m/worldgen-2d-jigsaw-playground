@@ -1,0 +1,33 @@
+{
+    "cost": 0,
+    "joints": {
+        "#support": {
+            "location": [
+                0,
+                0
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "blocks/stone",
+            "structures": [
+                {
+                    "id": "misc/support-soil",
+                    "joint": "#support",
+                    "weight": 100
+                }
+            ]
+        }
+    },
+    "placement-constraints": [
+        "no-blocks"
+    ],
+    "color-to-tile-mapping": {
+        "structure/joint": [
+            255,
+            0,
+            0
+        ]
+    }
+}

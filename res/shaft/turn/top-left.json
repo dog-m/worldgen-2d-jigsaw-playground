@@ -1,0 +1,73 @@
+{
+    "cost": 1,
+    "joints": {
+        "#left": {
+            "location": [
+                0,
+                4
+            ],
+            "direction": [
+                -1,
+                0
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                [
+                    "shaft_horizontal",
+                    "#right"
+                ],
+                [
+                    "shaft_junction",
+                    "#right"
+                ]
+            ]
+        },
+        "#right": {
+            "location": [
+                15,
+                4
+            ],
+            "direction": [
+                1,
+                0
+            ],
+            "replace-by": "blocks/background",
+            "structures": [
+                [
+                    "shaft_horizontal",
+                    "#left"
+                ],
+                [
+                    "shaft_junction",
+                    "#left"
+                ]
+            ]
+        }
+    },
+    "placement-constraints": [
+        "no-blocks",
+        "underground"
+    ],
+    "color-to-tile-mapping": {
+        "structure/void": [
+            0,
+            0,
+            0
+        ],
+        "blocks/background": [
+            64,
+            64,
+            64
+        ],
+        "blocks/wall": [
+            160,
+            160,
+            160
+        ],
+        "structure/joint": [
+            255,
+            0,
+            0
+        ]
+    }
+}
