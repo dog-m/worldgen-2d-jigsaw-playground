@@ -1,0 +1,30 @@
+{
+    "cost": 0,
+    "joints": {
+        "#end": {
+            "location": [
+                0,
+                3
+            ],
+            "direction": [
+                -1,
+                0
+            ],
+            "replace-by": "tiles/wall",
+            "structures": []
+        }
+    },
+    "placement-constraints": [],
+    "color-to-tile-mapping": {
+        "structure/void": [
+            0,
+            0,
+            0
+        ],
+        "tiles/wall": [
+            160,
+            160,
+            160
+        ]
+    }
+}

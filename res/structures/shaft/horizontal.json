@@ -1,0 +1,86 @@
+{
+    "cost": 1,
+    "joints": {
+        "#left": {
+            "location": [
+                0,
+                4
+            ],
+            "direction": [
+                -1,
+                0
+            ],
+            "replace-by": "tiles/background",
+            "structures": [
+                {
+                    "id": "shaft/horizontal",
+                    "joint": "#right",
+                    "weight": 50
+                },
+                {
+                    "id": "shaft/junction/all",
+                    "joint": "#right",
+                    "weight": 150
+                },
+                {
+                    "id": "shaft/end/right",
+                    "joint": "#end",
+                    "weight": 0
+                }
+            ]
+        },
+        "#right": {
+            "location": [
+                28,
+                4
+            ],
+            "direction": [
+                1,
+                0
+            ],
+            "replace-by": "tiles/background",
+            "structures": [
+                {
+                    "id": "shaft/horizontal",
+                    "joint": "#left",
+                    "weight": 50
+                },
+                {
+                    "id": "shaft/junction/all",
+                    "joint": "#left",
+                    "weight": 150
+                },
+                {
+                    "id": "shaft/end/left",
+                    "joint": "#end",
+                    "weight": 0
+                }
+            ]
+        }
+    },
+    "placement-constraints": [
+        "underground"
+    ],
+    "color-to-tile-mapping": {
+        "structure/void": [
+            0,
+            0,
+            0
+        ],
+        "tiles/background": [
+            64,
+            64,
+            64
+        ],
+        "tiles/wall": [
+            160,
+            160,
+            160
+        ],
+        "structure/joint": [
+            255,
+            0,
+            0
+        ]
+    }
+}

@@ -9,7 +9,11 @@ include(${CMAKE_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup()
 
 add_executable(${PROJECT_NAME}
-	src/main.cpp
+    src/tiles.cpp
+    src/world.cpp
+    src/structures.cpp
+    src/worldgen.cpp
+    src/main.cpp
     src/thirdparty/noise/noise1234.c
 )
 

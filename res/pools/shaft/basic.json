@@ -1,0 +1,47 @@
+{
+    "fallback": "shaft/ends",
+    "structures": [
+        {
+            "weight": 2,
+            "variants": [
+                "shaft/horizontal"
+            ]
+        },
+        {
+            "weight": 2,
+            "variants": [
+                "shaft/vertical"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/junction/all"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/turn/top-left"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/turn/top-right"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/turn/bottom-left"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/turn/bottom-right"
+            ]
+        }
+    ]
+}

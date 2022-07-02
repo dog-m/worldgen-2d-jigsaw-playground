@@ -1,0 +1,17 @@
+{
+    "fallback": "empty",
+    "structures": [
+        {
+            "weight": 50,
+            "variants": [
+                "misc/chain"
+            ]
+        },
+        {
+            "weight": 50,
+            "variants": [
+                "misc/support-soil"
+            ]
+        }
+    ]
+}

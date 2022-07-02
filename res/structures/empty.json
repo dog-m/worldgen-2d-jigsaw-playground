@@ -1,0 +1,12 @@
+{
+    "cost": 0,
+    "joints": [],
+    "placement-constraints": [],
+    "color-to-tile-mapping": {
+        "structure/void": [
+            0,
+            0,
+            0
+        ]
+    }
+}

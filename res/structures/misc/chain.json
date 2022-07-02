@@ -1,0 +1,29 @@
+{
+    "cost": 0,
+    "joints": [
+        {
+            "id": "#chain",
+            "location": [
+                0,
+                0
+            ],
+            "direction": [
+                0,
+                1
+            ],
+            "replace-by": "tiles/chain",
+            "pool": "misc/support"
+        }
+    ],
+    "placement-constraints": [
+        "no-blocks",
+        "underground"
+    ],
+    "color-to-tile-mapping": {
+        "structure/joint": [
+            255,
+            0,
+            0
+        ]
+    }
+}
