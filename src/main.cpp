@@ -9,6 +9,7 @@
 
 int main(void)
 {
+    SetTraceLogLevel(LOG_WARNING);
     const int screenWidth = 1000;
     const int screenHeight = 350;
 
@@ -17,15 +18,15 @@ int main(void)
     SetTargetFPS(20);
 
     auto const tiles = std::make_unique<TileRegistry>();
-    tiles->registerTile(AIR, "blocks/air", BLACK);
-    tiles->registerTile(SOIL, "blocks/soil", DARKPURPLE);
-    tiles->registerTile(STONE, "blocks/stone", DARKBLUE);
-    tiles->registerTile(BACKGROUND, "blocks/background", DARKGRAY);
-    tiles->registerTile(WALL, "blocks/wall", LIGHTGRAY);
-    tiles->registerTile(CHAIN, "blocks/chain", LIME);
+    tiles->register_tile(Tiles::AIR, "tiles/air", BLACK);
+    tiles->register_tile(Tiles::SOIL, "tiles/soil", DARKPURPLE);
+    tiles->register_tile(Tiles::STONE, "tiles/stone", DARKBLUE);
+    tiles->register_tile(Tiles::BACKGROUND, "tiles/background", DARKGRAY);
+    tiles->register_tile(Tiles::WALL, "tiles/wall", LIGHTGRAY);
+    tiles->register_tile(Tiles::CHAIN, "tiles/chain", LIME);
 
-    tiles->registerTile(STRUCTURE_VOID, "structure/void", RED);
-    tiles->registerTile(STRUCTURE_JOINT, "structure/joint", RED);
+    tiles->register_tile(Tiles::STRUCTURE_VOID, "structure/void", RED);
+    tiles->register_tile(Tiles::STRUCTURE_JOINT, "structure/joint", RED);
 
     auto const world = std::make_unique<World>();
     auto const gen = std::make_unique<WorldGenerator>();

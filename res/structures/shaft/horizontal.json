@@ -1,7 +1,8 @@
 {
     "cost": 1,
-    "joints": {
-        "#left": {
+    "joints": [
+        {
+            "tag": "#shaft",
             "location": [
                 0,
                 4
@@ -11,25 +12,10 @@
                 0
             ],
             "replace-by": "tiles/background",
-            "structures": [
-                {
-                    "id": "shaft/horizontal",
-                    "joint": "#right",
-                    "weight": 50
-                },
-                {
-                    "id": "shaft/junction/all",
-                    "joint": "#right",
-                    "weight": 150
-                },
-                {
-                    "id": "shaft/end/right",
-                    "joint": "#end",
-                    "weight": 0
-                }
-            ]
+            "pool": "shaft/basic"
         },
-        "#right": {
+        {
+            "tag": "#shaft",
             "location": [
                 28,
                 4
@@ -39,25 +25,9 @@
                 0
             ],
             "replace-by": "tiles/background",
-            "structures": [
-                {
-                    "id": "shaft/horizontal",
-                    "joint": "#left",
-                    "weight": 50
-                },
-                {
-                    "id": "shaft/junction/all",
-                    "joint": "#left",
-                    "weight": 150
-                },
-                {
-                    "id": "shaft/end/left",
-                    "joint": "#end",
-                    "weight": 0
-                }
-            ]
+            "pool": "shaft/basic"
         }
-    },
+    ],
     "placement-constraints": [
         "underground"
     ],

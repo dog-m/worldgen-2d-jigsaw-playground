@@ -5,185 +5,257 @@ extern "C"
 #include "thirdparty/noise/noise1234.h"
 }
 
-static bool undergroundPlacementChecker(
-    World const *world,
-    int x,
-    int y,
-    StructureObject const *obj)
+namespace PlacementCheckers
 {
-    y += obj->height - 1;
 
-    for (int dx = 0; dx < obj->width; dx++)
-        if (y > world->getHeightAt(x + dx))
+    static bool underground(
+        World const *world,
+        int x,
+        int y,
+        StructureObject const *obj)
+    {
+        y += obj->height - 1;
+
+        for (int dx = 0; dx < obj->width; dx++)
+            if (y > world->get_height_at(x + dx))
+                return false;
+
+        return true;
+    }
+
+    static bool no_tiles(
+        World const *world,
+        int x,
+        int y,
+        StructureObject const *obj)
+    {
+        for (int dy = 0; dy < obj->height; dy++)
+            for (int dx = 0; dx < obj->width; dx++)
+                if (world->get_tile_at(x + dx, y + dy) != Tiles::AIR)
+                    return false;
+
+        return true;
+    }
+
+}
+
+// ========================================================================
+
+void StructureBuilder::claim_space(
+    int const originX,
+    int const originY,
+    StructureObject const *const obj)
+{
+    auto tilePtr = obj->tiles.data();
+    auto obstruction = obstructed + originX + originY * WORLD_WIDTH;
+
+    for (int y = 0; y < obj->height; y++, obstruction += WORLD_WIDTH - obj->width)
+        for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
+            // is it an actual structure part?
+            if (*tilePtr != Tiles::STRUCTURE_VOID)
+                *obstruction = true;
+}
+
+/// Can this structure exists at all?
+bool StructureBuilder::is_in_world(
+    int const originX,
+    int const originY,
+    StructureObject const *const obj) const
+{
+    if (originX < 0 || originX + obj->width > WORLD_WIDTH_M1 ||
+        originY < 0 || originY + obj->height > WORLD_HEIGHT_M1)
+        return false;
+
+    return true;
+}
+
+// Is there enougth unoccupied space for the structure?
+bool StructureBuilder::is_free_space(
+    int const originX,
+    int const originY,
+    StructureObject const *const obj) const
+{
+    auto tilePtr = obj->tiles.data();
+    auto obstruction = obstructed + originX + originY * WORLD_WIDTH;
+
+    for (int y = 0; y < obj->height; y++, obstruction += WORLD_WIDTH - obj->width)
+        for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
+            // is this part already occupied by some other structure?
+            if (*tilePtr != Tiles::STRUCTURE_VOID && *obstruction)
+                return false;
+
+    return true;
+}
+
+/// Are the joints of this structure compatible with already placed joints?
+bool StructureBuilder::is_compatible(
+    int const originX,
+    int const originY,
+    StructureObject const *const obj) const
+{
+    for (auto const &[_, joint] : obj->config.joints)
+    {
+        auto const jx = originX + joint.direction[0] + joint.location[0];
+        auto const jy = originY + joint.direction[1] + obj->height - 1 - joint.location[1];
+
+        auto const placedJoint = find_joint_at(jx, jy);
+        if (placedJoint)
+        {
+            if (!placedJoint->isFacing(joint) || !placedJoint->isCompatibleWith(joint))
+                return false;
+        }
+        else
+        {
+            if (obstructed[jx + jy * WORLD_WIDTH])
+                return false;
+        }
+    }
+
+    return true;
+}
+
+// Are all the placement constraints sattisfied or not?
+bool StructureBuilder::is_satisfied(
+    int const originX,
+    int const originY,
+    StructureObject const *const obj) const
+{
+    for (auto const &constraint : obj->config.placementConstraints)
+        if (auto const &checker = placementCheckers.at(constraint); !checker(world, originX, originY, obj))
             return false;
 
     return true;
 }
 
-static bool noBlocksPlacementChecker(
-    World const *world,
-    int x,
-    int y,
-    StructureObject const *obj)
-{
-    for (int dy = 0; dy < obj->height; dy++)
-        for (int dx = 0; dx < obj->width; dx++)
-            if (world->getTileAt(x + dx, y + dy) != AIR)
-                return false;
-
-    return true;
-}
-
-// ========================================================================
-
-void StructureBuilder::claimStructureSpace(
-    int const callerX,
-    int const callerY,
-    StructureObject const *const obj)
-{
-    auto tilePtr = obj->tiles.data();
-    auto obstruction = obstructed + callerX + callerY * WORLD_WIDTH;
-
-    for (int y = 0; y < obj->height; y++, obstruction += WORLD_WIDTH - obj->width)
-        for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
-            // is it an actual structure part?
-            if (*tilePtr != STRUCTURE_VOID)
-                *obstruction = true;
-}
-
-bool StructureBuilder::can_be_built(
-    int const callerX,
-    int const callerY,
+// Can the suggested structure be continued after being placed?
+bool StructureBuilder::is_continuous(
+    int const originX,
+    int const originY,
     StructureObject const *const obj) const
 {
-    if (callerX < 0 || callerX + obj->width > WORLD_WIDTH_M1 ||
-        callerY < 0 || callerY + obj->height > WORLD_HEIGHT_M1)
-        return false;
+    for (auto const &[_, joint] : obj->config.joints)
+    {
+        auto const jx = originX + joint.direction[0] + joint.location[0];
+        auto const jy = originY + joint.direction[1] + obj->height - 1 - joint.location[1];
+        // ignore "already connected" directions
+        if (find_joint_at(jx, jy))
+            continue;
 
-    auto tilePtr = obj->tiles.data();
-    auto obstruction = obstructed + callerX + callerY * WORLD_WIDTH;
-
-    for (int y = 0; y < obj->height; y++, obstruction += WORLD_WIDTH - obj->width)
-        for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
-            // is this part already occupied by some other structure?
-            if (*tilePtr != STRUCTURE_VOID && *obstruction)
-                return false;
+        ; // TODO
+    }
 
     return true;
 }
 
-void StructureBuilder::build(
-    int const callerX,
-    int const callerY,
-    StructureObject const *const obj,
-    int const cost)
+void StructureBuilder::build(BuildRequest const *const request)
 {
-    auto tilePtr = obj->tiles.data();
+    auto tilePtr = request->obj->tiles.data();
 
     // materialize the structure
-    for (int y = 0; y < obj->height; y++)
-        for (int x = 0; x < obj->width; x++, tilePtr++)
+    for (int y = 0; y < request->obj->height; y++)
+        for (int x = 0; x < request->obj->width; x++, tilePtr++)
             // is it an actual structure part?
             switch (*tilePtr)
             {
-            case STRUCTURE_VOID:
+            case Tiles::STRUCTURE_VOID:
                 // just ignore it
                 break;
 
-            case STRUCTURE_JOINT:
+            case Tiles::STRUCTURE_JOINT:
             {
                 // place replacement tile instead
-                auto const cIndex = (x << 8) + (obj->height - 1 - y);
-                auto const &jointName = obj->config.coordToJoint.at(cIndex);
-                auto const &joint = obj->config.joints.at(jointName);
+                auto const cIndex = Configuration::location_hash(x, request->obj->height - 1 - y);
+                auto const &joint = request->obj->config.joints.at(cIndex);
 
-                world->setTile(callerX + x, callerY + y, tileRegistry->getTile(joint.replaceBy));
+                world->set_tile(request->x + x, request->y + y, tileRegistry->get_tile(joint.replaceBy));
                 break;
             }
 
             default:
-                world->setTile(callerX + x, callerY + y, *tilePtr);
+                world->set_tile(request->x + x, request->y + y, *tilePtr);
                 break;
             }
 }
 
-void StructureBuilder::propagate(
-    int const callerX,
-    int const callerY,
-    StructureObject const *const obj,
-    int const cost)
+void StructureBuilder::propagate(BuildRequest const *const request)
 {
-    std::unordered_set<Configuration::Structure::Joint::Target const *> targets;
+    for (auto const [_, joint] : request->obj->config.joints)
+        propagate_joint(request, &joint);
+}
 
-    for (auto const [_, joint] : obj->config.joints)
-        if (joint.structures.size() > 0)
+void StructureBuilder::propagate_joint(BuildRequest const *const request, JointCRef const joint)
+{
+    auto const targetJointX = request->x + joint->direction[0] + joint->location[0];
+    auto const targetJointY = request->y + joint->direction[1] + request->obj->height - 1 - joint->location[1];
+    // skip directions with "already connected" joints
+    if (find_joint_at(targetJointX, targetJointY))
+        return;
+
+    std::unordered_set<Configuration::Pool::Entry const *> targets;
+
+    auto pool = structureProvider->get_pool(joint->structurePool);
+    while (pool && !pool->structures.empty())
+    {
+        // prepare the choise table
+        auto totalWeight = 0;
+        for (auto const &entry : pool->structures)
         {
-            // queue the following structure (structure-specific alignment will be done separately)
-            auto const newX = callerX + joint.direction[0] + joint.location[0];
-            auto const newY = callerY + joint.direction[1] + (obj->height - 1 - joint.location[1]);
-
-            // prepare the pool of target structures
-            targets.clear();
-            auto totalWeight = 0;
-            for (auto const &target : joint.structures)
-            {
-                targets.emplace(&target);
-                totalWeight += target.weight;
-            }
-
-            // enqueue the random placeable target
-            while (!targets.empty())
-            {
-                Configuration::Structure::Joint::Target const *target = nullptr;
-
-                if (totalWeight == 0 || targets.size() == 1)
-                {
-                    // pick the only thing left
-                    target = *targets.cbegin();
-                }
-                else
-                {
-                    // pick a random value
-                    auto const value = rand() % totalWeight;
-
-                    // find anything that is above the threshold
-                    auto weightSum = 0;
-                    for (auto const candidate : targets)
-                        if (weightSum += candidate->weight; weightSum > value)
-                        {
-                            target = candidate;
-                            break;
-                        }
-                }
-
-                // remove the selected thing from the pool unrelated to placement successfulness
-                targets.erase(target);
-                totalWeight -= target->weight;
-
-                // attempt to place the thing
-                if (requestStructureAt(newX, newY, target->structureId, target->joint, cost))
-                    break;
-            }
+            targets.insert(std::addressof(entry));
+            totalWeight += entry.weight;
         }
+
+        while (!targets.empty() && totalWeight > 0)
+        {
+            // pick a random value
+            auto const value = rand() % totalWeight;
+
+            // find anything that is above the threshold
+            Configuration::Pool::Entry const *target = nullptr;
+            auto weightSum = 0;
+            for (auto const candidate : targets)
+                if (weightSum += candidate->weight; weightSum > value)
+                {
+                    target = candidate;
+                    break;
+                }
+
+            // remove the selected thing from the pool unrelated to placement successfulness
+            targets.erase(target);
+            totalWeight -= target->weight;
+
+            // attempt to place a random variant of the thing
+            auto const &structureId = target->structureVariants[rand() % target->structureVariants.size()];
+            if (request_structure_at(
+                    structureId,
+                    targetJointX, targetJointY,
+                    -joint->direction[0], -joint->direction[1],
+                    joint->tag,
+                    request->totalCost))
+                return;
+        }
+
+        // there are no structures had been chosen so far - switching to the backup pool
+        pool = structureProvider->get_pool(pool->fallback);
+    }
 }
 
 StructureBuilder::StructureBuilder()
 {
-    this->placementCheckers.emplace("underground", undergroundPlacementChecker);
-    this->placementCheckers.emplace("no-blocks", noBlocksPlacementChecker);
+    placementCheckers.emplace("underground", PlacementCheckers::underground);
+    placementCheckers.emplace("no-tiles", PlacementCheckers::no_tiles);
 }
 
-void StructureBuilder::attachWorld(World *const worldPtr)
+void StructureBuilder::attach_world(World *const worldPtr)
 {
     this->world = worldPtr;
 }
 
-void StructureBuilder::attachStructureProvider(StructureProvider *const provider)
+void StructureBuilder::attach_structure_provider(StructureProvider *const provider)
 {
     this->structureProvider = provider;
 }
 
-void StructureBuilder::attachTileRegistry(TileRegistry const *registry)
+void StructureBuilder::attach_tile_registry(TileRegistry const *registry)
 {
     this->tileRegistry = registry;
 }
@@ -191,63 +263,108 @@ void StructureBuilder::attachTileRegistry(TileRegistry const *registry)
 void StructureBuilder::reset()
 {
     std::fill(std::begin(obstructed), std::end(obstructed), false);
+    jointMap.clear();
 }
 
-bool StructureBuilder::requestStructureAt(
-    int x,
-    int y,
+using JointCRef = Configuration::Structure::Joint const *;
+
+inline auto structure_joint_comparator(JointCRef a, JointCRef b)
+{
+    int const ha = Configuration::location_hash(a->location[0], a->location[1]);
+    int const hb = Configuration::location_hash(b->location[0], b->location[1]);
+    return ha - hb;
+}
+
+bool StructureBuilder::request_structure_at(
     std::string const &structureId,
-    std::string const &targetJoint,
+    int expectedJointWorldX,
+    int expectedJointWorldY,
+    int targetJointDirX,
+    int targetJointDirY,
+    std::string const &targetTag,
     int cost)
 {
-    // find the structure and correct the origin point
-    auto const obj = structureProvider->getStructure(structureId);
-    auto const &joint = obj->config.joints.at(targetJoint);
-    x -= joint.location[0];
-    y -= obj->height - 1 - joint.location[1];
-
-    // correct the cost of current building branch
+    // find the structure and correct the cost of current building branch
+    auto const obj = structureProvider->get_structure(structureId);
     cost += obj->config.cost;
     if (cost > COST_MAX)
         return false;
 
-    // see if there is enougth space
-    if (!can_be_built(x, y, obj))
+    // look for suitable target joints
+    std::deque<JointCRef> joints;
+    for (auto const &[_, joint] : obj->config.joints)
+        if (joint.direction[0] == targetJointDirX && joint.direction[1] == targetJointDirY &&
+            joint.tag == targetTag)
+            joints.emplace_back(&joint);
+
+    if (joints.empty())
         return false;
 
-    // check placement constraints
-    for (auto const &constraint : obj->config.placementConstraints)
-        if (auto const &checker = placementCheckers.at(constraint); !checker(world, x, y, obj))
-            return false;
+    // make some sort of order (implementation-independent) in deciding what joint to choose
+    if (joints.size() != 1)
+        std::sort(joints.begin(), joints.end(), structure_joint_comparator);
 
-    // queue and claim space for it
-    auto req = std::make_unique<BuildRequest>();
-    req->x = x;
-    req->y = y;
-    req->obj = obj;
-    req->cost = cost;
-    buildQueue.emplace_back(std::move(req));
-    claimStructureSpace(x, y, obj);
+    // try every target one by one
+    while (!joints.empty())
+    {
+        auto const joint = joints.front();
+        joints.pop_front();
 
-    return true;
+        // correct the origin point
+        auto const ox = expectedJointWorldX - joint->location[0];
+        auto const oy = expectedJointWorldY - obj->height + 1 + joint->location[1];
+
+        // can this be placed at this exact location?
+        if (is_in_world(ox, oy, obj) &&
+            is_compatible(ox, oy, obj) &&
+            is_free_space(ox, oy, obj) &&
+            is_satisfied(ox, oy, obj) &&
+            is_continuous(ox, oy, obj))
+        {
+            // schedule the placement
+            auto const req = requestPool.get();
+            req->x = ox;
+            req->y = oy;
+            req->obj = obj;
+            req->totalCost = cost;
+            buildQueue.emplace_back(req);
+
+            // claim space and pre-register joints
+            claim_space(ox, oy, obj);
+            for (auto const &[_, joint] : obj->config.joints)
+            {
+                auto const jx = ox + joint.location[0];
+                auto const jy = oy + obj->height - 1 - joint.location[1];
+                reg_joint_at(jx, jy, &joint);
+            }
+
+            // successive "placement"
+            return true;
+        }
+    }
+
+    return false;
 }
 
-void StructureBuilder::processAllRequests()
+void StructureBuilder::process_all_requests()
 {
     while (!buildQueue.empty())
     {
-        auto request = std::move(buildQueue.front());
+        auto const request = buildQueue.front();
         buildQueue.pop_front();
 
         // materialize the thing and propagate ongoing structures further after its joints
-        build(request->x, request->y, request->obj, request->cost);
-        propagate(request->x, request->y, request->obj, request->cost);
+        build(request);
+        propagate(request);
+
+        // free the object
+        requestPool.release(request);
     }
 }
 
 // ========================================================================
 
-inline float WorldGenerator::fractalNoise(int octaves, float x, float y, float z)
+inline static float fractal_noise(int octaves, float x, float y = 0.f, float z = 0.f)
 {
     auto result = 0.f;
     auto scale = 1.f;
@@ -264,48 +381,48 @@ inline float WorldGenerator::fractalNoise(int octaves, float x, float y, float z
     return result;
 }
 
-void WorldGenerator::genSoil(World *const world)
+void WorldGenerator::gen_soil(World *const world)
 {
     auto const z = rand() % 256;
 
     for (int y = 0; y < WORLD_HEIGHT; y++)
         for (int x = 0; x < WORLD_WIDTH; x++)
         {
-            auto const n1 = fractalNoise(3, x / 128.f, z);
-            auto const n2 = fractalNoise(3, x / 64.f, y / 64.f, z) * (WORLD_HEIGHT - y) / WORLD_HEIGHT;
-            auto const n3 = fractalNoise(2, x / 32.f, y / 16.f, z + 1.f);
+            auto const n1 = fractal_noise(3, x / 128.f, z);
+            auto const n2 = fractal_noise(3, x / 64.f, y / 64.f, z) * (WORLD_HEIGHT - y) / WORLD_HEIGHT;
+            auto const n3 = fractal_noise(2, x / 32.f, y / 16.f, z + 1.f);
 
             if (n3 > 0.385f * 0.85f)
             {
                 if (y < n1 * WORLD_HEIGHT)
-                    world->setTile(x, y, SOIL);
+                    world->set_tile(x, y, Tiles::SOIL);
 
                 if (n2 > 0.3f)
-                    world->setTile(x, y, STONE);
+                    world->set_tile(x, y, Tiles::STONE);
             }
             /*if (y < (WORLD_HEIGHT >> 1))
-                world->setTile(x, y, STONE);*/
+                world->set_tile(x, y, Tiles::STONE);*/
         }
 }
 
-void WorldGenerator::genBase(World *const world)
+void WorldGenerator::gen_base(World *const world)
 {
     int const startX = 16 + rand() % (WORLD_WIDTH_M1 - 16 * 2);
-    int const startY = world->getHeightAt(startX);
+    int const startY = world->get_height_at(startX);
 
-    builder.requestStructureAt(startX, startY, "room/base", "#floor", 0);
-    builder.processAllRequests();
+    builder.request_structure_at("room/base", startX, startY, 0, 0, "#floor", 0);
+    builder.process_all_requests();
 }
 
 void WorldGenerator::generate(World *const world, TileRegistry const *const tileRegistry)
 {
-    provider.attachTileRegistry(tileRegistry);
+    provider.attach_tile_registry(tileRegistry);
 
     builder.reset();
-    builder.attachTileRegistry(tileRegistry);
-    builder.attachStructureProvider(&provider);
-    builder.attachWorld(world);
+    builder.attach_tile_registry(tileRegistry);
+    builder.attach_structure_provider(&provider);
+    builder.attach_world(world);
 
-    genSoil(world);
-    // genBase(world);
+    gen_soil(world);
+    gen_base(world);
 }

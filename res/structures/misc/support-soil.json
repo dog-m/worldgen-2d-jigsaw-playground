@@ -1,7 +1,8 @@
 {
     "cost": 0,
-    "joints": {
-        "#support": {
+    "joints": [
+        {
+            "tag": "#support",
             "location": [
                 0,
                 0
@@ -11,17 +12,11 @@
                 -1
             ],
             "replace-by": "tiles/stone",
-            "structures": [
-                {
-                    "id": "misc/support-soil",
-                    "joint": "#support",
-                    "weight": 100
-                }
-            ]
+            "pool": "misc/support"
         }
-    },
+    ],
     "placement-constraints": [
-        "no-blocks"
+        "no-tiles"
     ],
     "color-to-tile-mapping": {
         "structure/joint": [

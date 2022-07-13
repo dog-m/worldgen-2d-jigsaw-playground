@@ -15,45 +15,37 @@ namespace Configuration
 
     void from_json(const nlohmann::json &json, Pool &pool)
     {
-        json.at("fallback").get_to(pool.fallbackPool);
+        json.at("fallback").get_to(pool.fallback);
         json.at("structures").get_to(pool.structures);
-    }
-
-    void from_json(const nlohmann::json &json, Structure::Joint::Target &target)
-    {
-        json.at("id").get_to(target.structureId);
-        json.at("joint").get_to(target.joint);
-        json.at("weight").get_to(target.weight);
     }
 
     void from_json(const nlohmann::json &json, Structure::Joint &joint)
     {
+        json.at("tag").get_to(joint.tag);
         json.at("location").get_to(joint.location);
         json.at("direction").get_to(joint.direction);
         json.at("replace-by").get_to(joint.replaceBy);
-        json.at("structures").get_to(joint.structures);
+        json.at("pool").get_to(joint.structurePool);
     }
 
     void from_json(const nlohmann::json &json, Structure &structure)
     {
         json.at("cost").get_to(structure.cost);
-        json.at("joints").get_to(structure.joints);
         json.at("placement-constraints").get_to(structure.placementConstraints);
+
+        auto const joints = json.at("joints").get<std::vector<Structure::Joint>>();
+        for (auto &joint : joints)
+        {
+            auto const coords = Configuration::location_hash(joint.location[0], joint.location[1]);
+            structure.joints.emplace(coords, std::move(joint));
+        }
 
         auto const mapping = json.at("color-to-tile-mapping")
                                  .get<std::unordered_map<std::string, std::array<uint32_t, 3>>>();
         for (auto const [name, rgb] : mapping)
         {
             auto const [r, g, b] = rgb;
-            auto const color = (r << 16) + (g << 8) + b;
-            structure.colorsToBlocks.emplace(color, name);
-        }
-
-        // post-processing
-        for (auto const [name, joint] : structure.joints)
-        {
-            auto const coords = (joint.location[0] << 8) + joint.location[1];
-            structure.coordToJoint.emplace(coords, name);
+            structure.colorsToBlocks.emplace(RGB_COLOR(r, g, b), name);
         }
     }
 }
@@ -63,14 +55,21 @@ namespace Configuration
 static std::string const DIR_POOLS = "../../res/pools/";
 static std::string const DIR_STRUCTURES = "../../res/structures/";
 
-StructureObject const *StructureProvider::loadStructure(std::string const &id)
+StructureObject const *StructureProvider::load_structure(std::string const &id)
 {
     auto p = loadedStructures.emplace(id, std::make_unique<StructureObject>());
     auto result = p.first->second.get();
 
     // load the configuration
-    std::ifstream in(DIR_STRUCTURES + id + ".json");
-    nlohmann::json::parse(in).get_to(result->config);
+    try
+    {
+        std::ifstream in(DIR_STRUCTURES + id + ".json");
+        nlohmann::json::parse(in).get_to(result->config);
+    }
+    catch (const nlohmann::json::exception &e)
+    {
+        printf("[X] Invalid structure <%s>. Reason: %s\n", id.c_str(), e.what());
+    }
 
     // load image
     auto img = LoadImage((DIR_STRUCTURES + id + ".png").c_str());
@@ -82,16 +81,16 @@ StructureObject const *StructureProvider::loadStructure(std::string const &id)
     ImageFormat(&img, PixelFormat::UNCOMPRESSED_R8G8B8A8);
     // convert to tiles
 
-    result->tiles = std::vector<TileId>(img.width * img.height, AIR);
+    result->tiles = std::vector<TileId>(img.width * img.height, Tiles::AIR);
 
     auto pixel = (Color const *)img.data;
     auto tile = result->tiles.data();
     auto const tileLast = tile + result->tiles.size();
     for (; tile != tileLast; pixel++, tile++)
     {
-        auto const color = (pixel->r << 16) + (pixel->g << 8) + pixel->b;
+        auto const color = RGB_COLOR(pixel->r, pixel->g, pixel->b);
         auto const name = result->config.colorsToBlocks[color];
-        *tile = tileRegistry->getTile(name);
+        *tile = tileRegistry->get_tile(name);
     }
 
     UnloadImage(img);
@@ -99,7 +98,7 @@ StructureObject const *StructureProvider::loadStructure(std::string const &id)
     return result;
 }
 
-Configuration::Pool const *StructureProvider::loadPool(std::string const &id)
+Configuration::Pool const *StructureProvider::load_pool(std::string const &id)
 {
     auto p = loadedPools.emplace(id, std::make_unique<Configuration::Pool>());
     auto result = p.first->second.get();
@@ -109,28 +108,28 @@ Configuration::Pool const *StructureProvider::loadPool(std::string const &id)
     nlohmann::json::parse(in).get_to(*result);
 
     // pre-load fallbacks
-    getPool(result->fallbackPool);
+    get_pool(result->fallback);
 
     return result;
 }
 
-void StructureProvider::attachTileRegistry(TileRegistry const *const registry)
+void StructureProvider::attach_tile_registry(TileRegistry const *const registry)
 {
     this->tileRegistry = registry;
 }
 
-StructureObject const *StructureProvider::getStructure(std::string const &id)
+StructureObject const *StructureProvider::get_structure(std::string const &id)
 {
     if (auto const iter = loadedStructures.find(id); iter != loadedStructures.cend())
         return iter->second.get();
     else
-        return loadStructure(id);
+        return load_structure(id);
 }
 
-Configuration::Pool const *StructureProvider::getPool(std::string const &id)
+Configuration::Pool const *StructureProvider::get_pool(std::string const &id)
 {
     if (auto const iter = loadedPools.find(id); iter != loadedPools.cend())
         return iter->second.get();
     else
-        return loadPool(id);
+        return load_pool(id);
 }

@@ -1,45 +1,8 @@
 {
     "cost": 1,
-    "joints": {
-        "#bottom": {
-            "location": [
-                11,
-                15
-            ],
-            "direction": [
-                0,
-                -1
-            ],
-            "replace-by": "tiles/background",
-            "structures": [
-                {
-                    "id": "shaft/vertical",
-                    "joint": "#top",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/junction/all",
-                    "joint": "#top",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/turn/top-left",
-                    "joint": "#top",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/turn/top-right",
-                    "joint": "#top",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/end/top",
-                    "joint": "#end",
-                    "weight": 0
-                }
-            ]
-        },
-        "#left": {
+    "joints": [
+        {
+            "tag": "#shaft",
             "location": [
                 0,
                 4
@@ -49,35 +12,22 @@
                 0
             ],
             "replace-by": "tiles/background",
-            "structures": [
-                {
-                    "id": "shaft/horizontal",
-                    "joint": "#right",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/junction/all",
-                    "joint": "#right",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/turn/top-right",
-                    "joint": "#right",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/turn/bottom-right",
-                    "joint": "#right",
-                    "weight": 25
-                },
-                {
-                    "id": "shaft/end/right",
-                    "joint": "#end",
-                    "weight": 0
-                }
-            ]
+            "pool": "shaft/basic"
+        },
+        {
+            "tag": "#shaft",
+            "location": [
+                11,
+                15
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "tiles/background",
+            "pool": "shaft/basic"
         }
-    },
+    ],
     "placement-constraints": [
         "underground"
     ],

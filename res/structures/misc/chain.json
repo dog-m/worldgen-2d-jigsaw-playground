@@ -2,7 +2,7 @@
     "cost": 0,
     "joints": [
         {
-            "id": "#chain",
+            "tag": "#chain",
             "location": [
                 0,
                 0
@@ -16,7 +16,7 @@
         }
     ],
     "placement-constraints": [
-        "no-blocks",
+        "no-tiles",
         "underground"
     ],
     "color-to-tile-mapping": {

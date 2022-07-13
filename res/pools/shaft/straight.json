@@ -1,0 +1,17 @@
+{
+    "fallback": "shaft/basic",
+    "structures": [
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/horizontal"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/vertical"
+            ]
+        }
+    ]
+}

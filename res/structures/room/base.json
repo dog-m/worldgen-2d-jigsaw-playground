@@ -1,7 +1,8 @@
 {
     "cost": 0,
-    "joints": {
-        "#floor": {
+    "joints": [
+        {
+            "tag": "#floor",
             "location": [
                 20,
                 18
@@ -11,9 +12,10 @@
                 0
             ],
             "replace-by": "tiles/background",
-            "structures": []
+            "pool": "empty"
         },
-        "#shaft": {
+        {
+            "tag": "#shaft",
             "location": [
                 20,
                 26
@@ -23,20 +25,10 @@
                 -1
             ],
             "replace-by": "tiles/background",
-            "structures": [
-                {
-                    "id": "shaft/vertical",
-                    "joint": "#top",
-                    "weight": 150
-                },
-                {
-                    "id": "shaft/junction/all",
-                    "joint": "#top",
-                    "weight": 50
-                }
-            ]
+            "pool": "shaft/straight"
         },
-        "#support-L1": {
+        {
+            "tag": "#support-L1",
             "location": [
                 8,
                 19
@@ -46,15 +38,10 @@
                 -1
             ],
             "replace-by": "tiles/wall",
-            "structures": [
-                {
-                    "id": "misc/support-soil",
-                    "joint": "#support",
-                    "weight": 100
-                }
-            ]
+            "pool": "misc/support"
         },
-        "#support-L2": {
+        {
+            "tag": "#support-L2",
             "location": [
                 9,
                 19
@@ -64,15 +51,10 @@
                 -1
             ],
             "replace-by": "tiles/wall",
-            "structures": [
-                {
-                    "id": "misc/support-soil",
-                    "joint": "#support",
-                    "weight": 100
-                }
-            ]
+            "pool": "misc/support"
         },
-        "#support-R1": {
+        {
+            "tag": "#support-R1",
             "location": [
                 31,
                 19
@@ -82,15 +64,10 @@
                 -1
             ],
             "replace-by": "tiles/wall",
-            "structures": [
-                {
-                    "id": "misc/support-soil",
-                    "joint": "#support",
-                    "weight": 100
-                }
-            ]
+            "pool": "misc/support"
         },
-        "#support-R2": {
+        {
+            "tag": "#support-R2",
             "location": [
                 32,
                 19
@@ -100,15 +77,9 @@
                 -1
             ],
             "replace-by": "tiles/wall",
-            "structures": [
-                {
-                    "id": "misc/support-soil",
-                    "joint": "#support",
-                    "weight": 100
-                }
-            ]
+            "pool": "misc/support"
         }
-    },
+    ],
     "placement-constraints": [],
     "color-to-tile-mapping": {
         "structure/void": [

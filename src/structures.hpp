@@ -9,8 +9,11 @@
 
 #include "tiles.hpp"
 
+#define RGB_COLOR(r, g, b) ((r) << 16) | ((g) << 8) | (b)
+
 namespace Configuration
 {
+
     struct Pool
     {
         struct Entry
@@ -19,40 +22,49 @@ namespace Configuration
             std::vector<std::string> structureVariants;
         };
 
-        std::string fallbackPool;
+        std::string fallback;
         std::vector<Entry> structures;
     };
 
+    using LocationHash = uint32_t;
+
+    inline LocationHash location_hash(int32_t x, int32_t y)
+    {
+        return x << 8 | y;
+    }
+
     struct Structure
     {
+
         struct Joint
         {
-            struct Target
-            {
-                std::string structureId;
-                std::string joint;
-                int32_t weight;
-            };
-
+            std::string tag;
             std::array<uint16_t, 2> location;
             std::array<int16_t, 2> direction;
             std::string replaceBy;
-            std::vector<Target> structures;
+            std::string structurePool;
+
+            inline bool isFacing(Joint const &other) const
+            {
+                return this->direction[0] == -other.direction[0] &&
+                       this->direction[1] == -other.direction[1];
+            }
+
+            inline bool isCompatibleWith(Joint const &other) const
+            {
+                return this->tag == other.tag;
+            }
         };
 
-        int32_t cost;
-        std::unordered_map<std::string, Joint> joints;
+        uint32_t cost;
+        std::unordered_map<LocationHash, Joint> joints;
         std::unordered_set<std::string> placementConstraints;
         std::unordered_map<uint32_t, std::string> colorsToBlocks;
-
-        std::unordered_map<uint16_t, std::string> coordToJoint;
     };
 
     void from_json(const nlohmann::json &json, Pool::Entry &entry);
 
     void from_json(const nlohmann::json &json, Pool &pool);
-
-    void from_json(const nlohmann::json &json, Structure::Joint::Target &target);
 
     void from_json(const nlohmann::json &json, Structure::Joint &joint);
 
@@ -78,14 +90,14 @@ private:
     std::unordered_map<std::string, std::unique_ptr<StructureObject>> loadedStructures;
     TileRegistry const *tileRegistry = nullptr;
 
-    StructureObject const *loadStructure(std::string const &id);
+    StructureObject const *load_structure(std::string const &id);
 
-    Configuration::Pool const *loadPool(std::string const &id);
+    Configuration::Pool const *load_pool(std::string const &id);
 
 public:
-    void attachTileRegistry(TileRegistry const *const registry);
+    void attach_tile_registry(TileRegistry const *const registry);
 
-    StructureObject const *getStructure(std::string const &id);
+    StructureObject const *get_structure(std::string const &id);
 
-    Configuration::Pool const *getPool(std::string const &id);
+    Configuration::Pool const *get_pool(std::string const &id);
 };

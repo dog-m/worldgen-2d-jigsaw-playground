@@ -1,7 +1,8 @@
 {
     "cost": 0,
-    "joints": {
-        "#end": {
+    "joints": [
+        {
+            "tag": "#shaft",
             "location": [
                 3,
                 1
@@ -11,9 +12,9 @@
                 -1
             ],
             "replace-by": "tiles/wall",
-            "structures": []
+            "pool": "empty"
         }
-    },
+    ],
     "placement-constraints": [],
     "color-to-tile-mapping": {
         "structure/void": [

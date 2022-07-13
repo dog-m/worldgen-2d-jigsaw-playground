@@ -16,9 +16,9 @@ private:
     uint16_t heightMap[WORLD_WIDTH] = {0};
 
 public:
-    void setTile(int x, int y, TileId tile);
-    TileId getTileAt(int x, int y) const;
-    int getHeightAt(int const x) const;
+    void set_tile(int x, int y, TileId tile);
+    TileId get_tile_at(int x, int y) const;
+    int get_height_at(int const x) const;
 
     void clear();
 

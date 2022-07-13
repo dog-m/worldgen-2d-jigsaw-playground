@@ -1,22 +1,22 @@
 #include "tiles.hpp"
 
-TileId TileRegistry::getTile(std::string const &name) const
+TileId TileRegistry::get_tile(std::string const &name) const
 {
     if (auto const iter = names.find(name); iter != names.cend())
         return iter->second;
     else
-        return UNKNOWN;
+        return Tiles::UNKNOWN;
 }
 
-Color TileRegistry::getTileColor(TileId tile) const
+Color TileRegistry::get_tile_color(TileId const tile) const
 {
     if (auto const iter = colors.find(tile); iter != colors.cend())
         return iter->second;
     else
-        return RED;
+        return PINK;
 }
 
-void TileRegistry::registerTile(TileId const tile, std::string const &name, Color color)
+void TileRegistry::register_tile(TileId const tile, std::string const &name, Color color)
 {
     color.a = 255;
     names[name] = tile;
