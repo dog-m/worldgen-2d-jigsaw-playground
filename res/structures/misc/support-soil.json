@@ -9,6 +9,19 @@
             ],
             "direction": [
                 0,
+                1
+            ],
+            "replace-by": "tiles/stone",
+            "pool": "empty"
+        },
+        {
+            "tag": "#support",
+            "location": [
+                0,
+                1
+            ],
+            "direction": [
+                0,
                 -1
             ],
             "replace-by": "tiles/stone",

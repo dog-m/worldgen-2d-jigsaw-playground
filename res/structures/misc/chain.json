@@ -13,6 +13,19 @@
             ],
             "replace-by": "tiles/chain",
             "pool": "misc/support"
+        },
+        {
+            "tag": "#chain",
+            "location": [
+                0,
+                1
+            ],
+            "direction": [
+                0,
+                -1
+            ],
+            "replace-by": "tiles/chain",
+            "pool": "misc/support"
         }
     ],
     "placement-constraints": [

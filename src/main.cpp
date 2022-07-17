@@ -40,6 +40,10 @@ int main(void)
     Vector2 worldOffset{0};
     auto worldScale = 1.f;
 
+    auto genAnimEnabled = false;
+    auto const genAnimStepDelayMax = 10;
+    auto genAnimStepDelay = genAnimStepDelayMax;
+
     // main loop
     while (!WindowShouldClose())
     {
@@ -79,6 +83,26 @@ int main(void)
             world->render(&imgWorld, tiles.get());
 
             UpdateTexture(texWorld, imgWorld.data);
+
+            printf("--- New generation ---\n");
+            genAnimEnabled = true;
+            genAnimStepDelay = genAnimStepDelayMax;
+        }
+        else if (genAnimEnabled)
+        {
+            if (--genAnimStepDelay == 0)
+                genAnimStepDelay = genAnimStepDelayMax;
+            else
+            {
+                if (gen->step())
+                {
+                    world->render(&imgWorld, tiles.get());
+
+                    UpdateTexture(texWorld, imgWorld.data);
+                }
+                else
+                    genAnimEnabled = false;
+            }
         }
 
         // draw the world

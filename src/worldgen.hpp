@@ -11,8 +11,6 @@ using StructurePlacementChecker = bool (*)(World const *world, int x, int y, Str
 
 // ========================================================================
 
-constexpr int COST_MAX = 80;
-
 class StructureBuilder
 {
 private:
@@ -21,6 +19,7 @@ private:
     TileRegistry const *tileRegistry = nullptr;
 
     bool obstructed[WORLD_WIDTH * WORLD_HEIGHT] = {0};
+    bool reserved[WORLD_WIDTH * WORLD_HEIGHT] = {0};
 
     using JointCRef = Configuration::Structure::Joint const *;
     using JointSparseMap = std::unordered_map<Configuration::LocationHash, JointCRef>;
@@ -39,28 +38,44 @@ private:
             return nullptr;
     }
 
-    bool is_in_world(int const originX, int const originY, StructureObject const *const obj) const;
-    bool is_free_space(int const originX, int const originY, StructureObject const *const obj) const;
-    bool is_compatible(int const originX, int const originY, StructureObject const *const obj) const;
-    bool is_satisfied(int const originX, int const originY, StructureObject const *const obj) const;
-    bool is_continuous(int const originX, int const originY, StructureObject const *const obj) const;
-    
-    void claim_space(int const originX, int const originY, StructureObject const *const obj);
+    bool is_in_world(int originX, int originY, StructureObject const *obj) const;
+    bool is_free_space(int originX, int originY, StructureObject const *obj, bool const *dimension) const;
+    bool is_compatible(int originX, int originY, StructureObject const *obj) const;
+    bool is_satisfied(int originX, int originY, StructureObject const *obj) const;
+    bool is_continuable(int originX, int originY, StructureObject const *obj);
+
+    void claim_space(int originX, int originY, StructureObject const *obj, bool *dimension);
+    void place_joints(int originX, int originY, StructureObject const *obj);
 
     struct BuildRequest
     {
         int x;
         int y;
         StructureObject const *obj;
-        int totalCost;
+        int budget;
     };
 
-    misc::ObjectPoolDynamic<BuildRequest> requestPool;
+    misc::ObjectPoolDynamic<BuildRequest, 32> requestPool;
     std::deque<BuildRequest *> buildQueue;
 
     void build(BuildRequest const *const request);
     void propagate(BuildRequest const *const request);
-    void propagate_joint(BuildRequest const *const request, JointCRef const joint);
+
+    BuildRequest *propagate_joint(int originX,
+                                  int originY,
+                                  StructureObject const *obj,
+                                  JointCRef const joint,
+                                  int budget,
+                                  bool checkContinuity);
+
+    BuildRequest *try_request_structure(std::string const &structureId,
+                                        int expectedJointWorldX,
+                                        int expectedJointWorldY,
+                                        int targetJointDirX,
+                                        int targetJointDirY,
+                                        std::string const &targetTag,
+                                        int budget,
+                                        bool checkContinuity);
 
     std::unordered_map<std::string, StructurePlacementChecker> placementCheckers;
 
@@ -75,15 +90,15 @@ public:
 
     void reset();
 
-    bool request_structure_at(std::string const &structureId,
-                              int expectedJointWorldX,
-                              int expectedJointWorldY,
-                              int targetJointDirX,
-                              int targetJointDirY,
-                              std::string const &targetTag,
-                              int cost);
+    void request_structure(std::string const &structureId,
+                           int jointWorldX,
+                           int jointWorldY,
+                           std::string const &jointTag,
+                           int budget);
 
     void process_all_requests();
+
+    bool step();
 };
 
 // ========================================================================
@@ -99,4 +114,6 @@ private:
 
 public:
     void generate(World *const world, TileRegistry const *const tileRegistry);
+
+    bool step();
 };

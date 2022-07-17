@@ -1,0 +1,29 @@
+{
+    "fallback": "shaft/ends",
+    "structures": [
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/turn/top-left"
+            ]
+        },
+        {
+            "weight": 1,
+            "variants": [
+                "shaft/turn/top-right"
+            ]
+        },
+        {
+            "weight": 2,
+            "variants": [
+                "shaft/turn/bottom-left"
+            ]
+        },
+        {
+            "weight": 2,
+            "variants": [
+                "shaft/turn/bottom-right"
+            ]
+        }
+    ]
+}

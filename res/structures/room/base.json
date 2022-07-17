@@ -2,7 +2,7 @@
     "cost": 0,
     "joints": [
         {
-            "tag": "#floor",
+            "tag": "#start",
             "location": [
                 20,
                 18
@@ -25,10 +25,10 @@
                 -1
             ],
             "replace-by": "tiles/background",
-            "pool": "shaft/straight"
+            "pool": "shaft/basic"
         },
         {
-            "tag": "#support-L1",
+            "tag": "#support",
             "location": [
                 8,
                 19
@@ -41,7 +41,7 @@
             "pool": "misc/support"
         },
         {
-            "tag": "#support-L2",
+            "tag": "#support",
             "location": [
                 9,
                 19
@@ -54,7 +54,7 @@
             "pool": "misc/support"
         },
         {
-            "tag": "#support-R1",
+            "tag": "#support",
             "location": [
                 31,
                 19
@@ -67,7 +67,7 @@
             "pool": "misc/support"
         },
         {
-            "tag": "#support-R2",
+            "tag": "#support",
             "location": [
                 32,
                 19

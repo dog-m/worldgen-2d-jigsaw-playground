@@ -44,10 +44,11 @@ namespace PlacementCheckers
 void StructureBuilder::claim_space(
     int const originX,
     int const originY,
-    StructureObject const *const obj)
+    StructureObject const *const obj,
+    bool *const dimension)
 {
     auto tilePtr = obj->tiles.data();
-    auto obstruction = obstructed + originX + originY * WORLD_WIDTH;
+    auto obstruction = dimension + originX + originY * WORLD_WIDTH;
 
     for (int y = 0; y < obj->height; y++, obstruction += WORLD_WIDTH - obj->width)
         for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
@@ -56,11 +57,24 @@ void StructureBuilder::claim_space(
                 *obstruction = true;
 }
 
-/// Can this structure exists at all?
-bool StructureBuilder::is_in_world(
+void StructureBuilder::place_joints(
     int const originX,
     int const originY,
-    StructureObject const *const obj) const
+    StructureObject const *obj)
+{
+    for (auto const &[_, joint] : obj->config.joints)
+    {
+        auto const jx = originX + joint.location[0];
+        auto const jy = originY + obj->height - 1 - joint.location[1];
+        reg_joint_at(jx, jy, &joint);
+    }
+}
+
+/// Can this structure exists at all?
+bool StructureBuilder::is_in_world(
+    int originX,
+    int originY,
+    StructureObject const *obj) const
 {
     if (originX < 0 || originX + obj->width > WORLD_WIDTH_M1 ||
         originY < 0 || originY + obj->height > WORLD_HEIGHT_M1)
@@ -71,12 +85,13 @@ bool StructureBuilder::is_in_world(
 
 // Is there enougth unoccupied space for the structure?
 bool StructureBuilder::is_free_space(
-    int const originX,
-    int const originY,
-    StructureObject const *const obj) const
+    int originX,
+    int originY,
+    StructureObject const *obj,
+    bool const *dimension) const
 {
     auto tilePtr = obj->tiles.data();
-    auto obstruction = obstructed + originX + originY * WORLD_WIDTH;
+    auto obstruction = dimension + originX + originY * WORLD_WIDTH;
 
     for (int y = 0; y < obj->height; y++, obstruction += WORLD_WIDTH - obj->width)
         for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
@@ -89,9 +104,9 @@ bool StructureBuilder::is_free_space(
 
 /// Are the joints of this structure compatible with already placed joints?
 bool StructureBuilder::is_compatible(
-    int const originX,
-    int const originY,
-    StructureObject const *const obj) const
+    int originX,
+    int originY,
+    StructureObject const *obj) const
 {
     for (auto const &[_, joint] : obj->config.joints)
     {
@@ -116,9 +131,9 @@ bool StructureBuilder::is_compatible(
 
 // Are all the placement constraints sattisfied or not?
 bool StructureBuilder::is_satisfied(
-    int const originX,
-    int const originY,
-    StructureObject const *const obj) const
+    int originX,
+    int originY,
+    StructureObject const *obj) const
 {
     for (auto const &constraint : obj->config.placementConstraints)
         if (auto const &checker = placementCheckers.at(constraint); !checker(world, originX, originY, obj))
@@ -128,20 +143,41 @@ bool StructureBuilder::is_satisfied(
 }
 
 // Can the suggested structure be continued after being placed?
-bool StructureBuilder::is_continuous(
-    int const originX,
-    int const originY,
-    StructureObject const *const obj) const
+bool StructureBuilder::is_continuable(
+    int originX,
+    int originY,
+    StructureObject const *obj)
 {
+    std::vector<StructureBuilder::BuildRequest *> supposedStructures;
+
     for (auto const &[_, joint] : obj->config.joints)
     {
         auto const jx = originX + joint.direction[0] + joint.location[0];
         auto const jy = originY + joint.direction[1] + obj->height - 1 - joint.location[1];
         // ignore "already connected" directions
-        if (find_joint_at(jx, jy))
+        if (find_joint_at(jx, jy) || joint.direction[0] == 0 && joint.direction[1] == 0)
             continue;
 
-        ; // TODO
+        // on every disconnected joint it should be possible to attach at least something
+        auto const newReq = propagate_joint(originX, originY, obj, &joint, 1000, false);
+        if (!newReq)
+        {
+            // clean-up the objects
+            for (auto const req : supposedStructures)
+                requestPool.release(req);
+
+            return false;
+        }
+
+        supposedStructures.emplace_back(newReq);
+    }
+
+    // reserve the space and free the objects
+    for (auto const req : supposedStructures)
+    {
+        claim_space(req->x, req->y, req->obj, reserved);
+
+        requestPool.release(req);
     }
 
     return true;
@@ -180,16 +216,33 @@ void StructureBuilder::build(BuildRequest const *const request)
 void StructureBuilder::propagate(BuildRequest const *const request)
 {
     for (auto const [_, joint] : request->obj->config.joints)
-        propagate_joint(request, &joint);
+    {
+        auto const newReq = propagate_joint(request->x, request->y, request->obj, &joint, request->budget, true);
+        if (!newReq)
+            continue;
+
+        // schedule the placement
+        buildQueue.emplace_back(newReq);
+
+        // claim space and pre-register joints
+        claim_space(newReq->x, newReq->y, newReq->obj, obstructed);
+        place_joints(newReq->x, newReq->y, newReq->obj);
+    }
 }
 
-void StructureBuilder::propagate_joint(BuildRequest const *const request, JointCRef const joint)
+StructureBuilder::BuildRequest *StructureBuilder::propagate_joint(
+    int originX,
+    int originY,
+    StructureObject const *obj,
+    JointCRef const joint,
+    int budget,
+    bool checkContinuity)
 {
-    auto const targetJointX = request->x + joint->direction[0] + joint->location[0];
-    auto const targetJointY = request->y + joint->direction[1] + request->obj->height - 1 - joint->location[1];
+    auto const targetJointX = originX + joint->direction[0] + joint->location[0];
+    auto const targetJointY = originY + joint->direction[1] + obj->height - 1 - joint->location[1];
     // skip directions with "already connected" joints
     if (find_joint_at(targetJointX, targetJointY))
-        return;
+        return nullptr;
 
     std::unordered_set<Configuration::Pool::Entry const *> targets;
 
@@ -225,18 +278,21 @@ void StructureBuilder::propagate_joint(BuildRequest const *const request, JointC
 
             // attempt to place a random variant of the thing
             auto const &structureId = target->structureVariants[rand() % target->structureVariants.size()];
-            if (request_structure_at(
-                    structureId,
-                    targetJointX, targetJointY,
-                    -joint->direction[0], -joint->direction[1],
-                    joint->tag,
-                    request->totalCost))
-                return;
+            auto const newReq = try_request_structure(
+                structureId,
+                targetJointX, targetJointY, -joint->direction[0], -joint->direction[1], joint->tag,
+                budget,
+                checkContinuity);
+
+            if (newReq)
+                return newReq;
         }
 
         // there are no structures had been chosen so far - switching to the backup pool
         pool = structureProvider->get_pool(pool->fallback);
     }
+
+    return nullptr;
 }
 
 StructureBuilder::StructureBuilder()
@@ -263,7 +319,27 @@ void StructureBuilder::attach_tile_registry(TileRegistry const *registry)
 void StructureBuilder::reset()
 {
     std::fill(std::begin(obstructed), std::end(obstructed), false);
+    std::fill(std::begin(reserved), std::end(reserved), false);
     jointMap.clear();
+}
+
+void StructureBuilder::request_structure(
+    std::string const &structureId,
+    int jointWorldX,
+    int jointWorldY,
+    std::string const &jointTag,
+    int budget)
+{
+    auto const newReq = try_request_structure(structureId, jointWorldX, jointWorldY, 0, 0, jointTag, budget, false);
+    if (!newReq)
+        return;
+
+    // schedule the placement
+    buildQueue.emplace_back(newReq);
+
+    // claim space and pre-register joints
+    claim_space(newReq->x, newReq->y, newReq->obj, obstructed);
+    place_joints(newReq->x, newReq->y, newReq->obj);
 }
 
 using JointCRef = Configuration::Structure::Joint const *;
@@ -275,20 +351,21 @@ inline auto structure_joint_comparator(JointCRef a, JointCRef b)
     return ha - hb;
 }
 
-bool StructureBuilder::request_structure_at(
+StructureBuilder::BuildRequest *StructureBuilder::try_request_structure(
     std::string const &structureId,
     int expectedJointWorldX,
     int expectedJointWorldY,
     int targetJointDirX,
     int targetJointDirY,
     std::string const &targetTag,
-    int cost)
+    int budget,
+    bool checkContinuity)
 {
     // find the structure and correct the cost of current building branch
     auto const obj = structureProvider->get_structure(structureId);
-    cost += obj->config.cost;
-    if (cost > COST_MAX)
-        return false;
+    budget -= obj->config.cost;
+    if (budget < 1)
+        return nullptr;
 
     // look for suitable target joints
     std::deque<JointCRef> joints;
@@ -298,7 +375,7 @@ bool StructureBuilder::request_structure_at(
             joints.emplace_back(&joint);
 
     if (joints.empty())
-        return false;
+        return nullptr;
 
     // make some sort of order (implementation-independent) in deciding what joint to choose
     if (joints.size() != 1)
@@ -317,33 +394,33 @@ bool StructureBuilder::request_structure_at(
         // can this be placed at this exact location?
         if (is_in_world(ox, oy, obj) &&
             is_compatible(ox, oy, obj) &&
-            is_free_space(ox, oy, obj) &&
-            is_satisfied(ox, oy, obj) &&
-            is_continuous(ox, oy, obj))
+            is_free_space(ox, oy, obj, obstructed) &&
+            is_satisfied(ox, oy, obj))
         {
+            if (checkContinuity)
+            {
+                if (!is_continuable(ox, oy, obj))
+                    continue;
+            }
+            else
+            {
+                if (!is_free_space(ox, oy, obj, reserved))
+                    continue;
+            }
+
             // schedule the placement
             auto const req = requestPool.get();
             req->x = ox;
             req->y = oy;
             req->obj = obj;
-            req->totalCost = cost;
-            buildQueue.emplace_back(req);
-
-            // claim space and pre-register joints
-            claim_space(ox, oy, obj);
-            for (auto const &[_, joint] : obj->config.joints)
-            {
-                auto const jx = ox + joint.location[0];
-                auto const jy = oy + obj->height - 1 - joint.location[1];
-                reg_joint_at(jx, jy, &joint);
-            }
+            req->budget = budget;
 
             // successive "placement"
-            return true;
+            return req;
         }
     }
 
-    return false;
+    return nullptr;
 }
 
 void StructureBuilder::process_all_requests()
@@ -360,6 +437,27 @@ void StructureBuilder::process_all_requests()
         // free the object
         requestPool.release(request);
     }
+}
+
+bool StructureBuilder::step()
+{
+    printf("Requests: %zd\n", buildQueue.size());
+    if (!buildQueue.empty())
+    {
+        auto const request = buildQueue.front();
+        buildQueue.pop_front();
+
+        // materialize the thing and propagate ongoing structures further after its joints
+        build(request);
+        propagate(request);
+
+        // free the object
+        requestPool.release(request);
+
+        return true;
+    }
+
+    return false;
 }
 
 // ========================================================================
@@ -407,11 +505,11 @@ void WorldGenerator::gen_soil(World *const world)
 
 void WorldGenerator::gen_base(World *const world)
 {
-    int const startX = 16 + rand() % (WORLD_WIDTH_M1 - 16 * 2);
+    int const startX = 21 + rand() % (WORLD_WIDTH_M1 - 21 * 2);
     int const startY = world->get_height_at(startX);
 
-    builder.request_structure_at("room/base", startX, startY, 0, 0, "#floor", 0);
-    builder.process_all_requests();
+    builder.request_structure("room/base", startX, startY, "#start", 80);
+    // builder.process_all_requests();
 }
 
 void WorldGenerator::generate(World *const world, TileRegistry const *const tileRegistry)
@@ -424,5 +522,12 @@ void WorldGenerator::generate(World *const world, TileRegistry const *const tile
     builder.attach_world(world);
 
     gen_soil(world);
+
+    for (int i = 0; i < 5; i++)
     gen_base(world);
+}
+
+bool WorldGenerator::step()
+{
+    return builder.step();
 }
