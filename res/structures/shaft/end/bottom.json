@@ -5,7 +5,7 @@
             "tag": "#shaft",
             "location": [
                 3,
-                1
+                2
             ],
             "direction": [
                 0,
@@ -26,6 +26,11 @@
             160,
             160,
             160
+        ],
+        "structure/joint": [
+            255,
+            0,
+            0
         ]
     }
 }

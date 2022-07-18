@@ -54,7 +54,11 @@ void StructureBuilder::claim_space(
         for (int x = 0; x < obj->width; x++, tilePtr++, obstruction++)
             // is it an actual structure part?
             if (*tilePtr != Tiles::STRUCTURE_VOID)
+            {
                 *obstruction = true;
+
+                world->set_tile(originX + x, originY + y, dimension == obstructed ? Tiles::CHAIN : Tiles::UNKNOWN);
+            }
 }
 
 void StructureBuilder::place_joints(
@@ -108,6 +112,7 @@ bool StructureBuilder::is_compatible(
     int originY,
     StructureObject const *obj) const
 {
+    // check the joint locations
     for (auto const &[_, joint] : obj->config.joints)
     {
         auto const jx = originX + joint.direction[0] + joint.location[0];
@@ -125,6 +130,20 @@ bool StructureBuilder::is_compatible(
                 return false;
         }
     }
+
+    // check solid tiles
+    auto tilePtr = obj->tiles.data();
+    for (int y = 0; y < obj->height; y++)
+        for (int x = 0; x < obj->width; x++, tilePtr++)
+            // is this part already occupied by some other structure?
+            if (*tilePtr != Tiles::STRUCTURE_VOID && *tilePtr != Tiles::STRUCTURE_JOINT)
+            {
+                if (find_joint_at(originX + x - 1, originY + y) ||
+                    find_joint_at(originX + x + 1, originY + y) ||
+                    find_joint_at(originX + x, originY + y - 1) ||
+                    find_joint_at(originX + x, originY + y + 1))
+                    return false;
+            }
 
     return true;
 }
@@ -244,6 +263,8 @@ StructureBuilder::BuildRequest *StructureBuilder::propagate_joint(
     if (find_joint_at(targetJointX, targetJointY))
         return nullptr;
 
+    std::unordered_set<StructureBuilder::BuildRequest *> candidates;
+
     std::unordered_set<Configuration::Pool::Entry const *> targets;
 
     auto pool = structureProvider->get_pool(joint->structurePool);
@@ -285,14 +306,43 @@ StructureBuilder::BuildRequest *StructureBuilder::propagate_joint(
                 checkContinuity);
 
             if (newReq)
-                return newReq;
+            {
+                if (checkContinuity)
+                    return newReq;
+                else
+                    candidates.insert(newReq);
+            }
         }
 
         // there are no structures had been chosen so far - switching to the backup pool
         pool = structureProvider->get_pool(pool->fallback);
     }
 
-    return nullptr;
+    if (checkContinuity || candidates.empty())
+    {
+        return nullptr;
+    }
+    else
+    {
+        auto smallest = *candidates.cbegin();
+        auto smallestSize = smallest->obj->width * smallest->obj->height;
+
+        for (auto const candidate : candidates)
+        {
+            auto const candidateSize = candidate->obj->width * candidate->obj->height;
+            if (candidateSize < smallestSize)
+            {
+                requestPool.release(smallest);
+                smallest = candidate;
+                smallestSize = candidateSize;
+            }
+
+            if (candidate != smallest)
+                requestPool.release(candidate);
+        }
+
+        return smallest;
+    }
 }
 
 StructureBuilder::StructureBuilder()
@@ -524,7 +574,7 @@ void WorldGenerator::generate(World *const world, TileRegistry const *const tile
     gen_soil(world);
 
     for (int i = 0; i < 5; i++)
-    gen_base(world);
+        gen_base(world);
 }
 
 bool WorldGenerator::step()

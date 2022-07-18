@@ -22,7 +22,7 @@ int main(void)
     tiles->register_tile(Tiles::SOIL, "tiles/soil", DARKPURPLE);
     tiles->register_tile(Tiles::STONE, "tiles/stone", DARKBLUE);
     tiles->register_tile(Tiles::BACKGROUND, "tiles/background", DARKGRAY);
-    tiles->register_tile(Tiles::WALL, "tiles/wall", LIGHTGRAY);
+    tiles->register_tile(Tiles::WALL, "tiles/wall", GRAY);
     tiles->register_tile(Tiles::CHAIN, "tiles/chain", LIME);
 
     tiles->register_tile(Tiles::STRUCTURE_VOID, "structure/void", RED);
@@ -41,7 +41,7 @@ int main(void)
     auto worldScale = 1.f;
 
     auto genAnimEnabled = false;
-    auto const genAnimStepDelayMax = 10;
+    auto const genAnimStepDelayMax = 100;
     auto genAnimStepDelay = genAnimStepDelayMax;
 
     // main loop
