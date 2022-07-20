@@ -90,7 +90,7 @@ int main(void)
         }
         else if (genAnimEnabled)
         {
-            if (--genAnimStepDelay == 0)
+            if (--genAnimStepDelay < 1)
                 genAnimStepDelay = genAnimStepDelayMax;
             else
             {

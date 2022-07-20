@@ -19,7 +19,7 @@ private:
     TileRegistry const *tileRegistry = nullptr;
 
     bool obstructed[WORLD_WIDTH * WORLD_HEIGHT] = {0};
-    bool reserved[WORLD_WIDTH * WORLD_HEIGHT] = {0};
+    uint16_t reserved[WORLD_WIDTH * WORLD_HEIGHT] = {0};
 
     using JointCRef = Configuration::Structure::Joint const *;
     using JointSparseMap = std::unordered_map<Configuration::LocationHash, JointCRef>;
@@ -39,12 +39,14 @@ private:
     }
 
     bool is_in_world(int originX, int originY, StructureObject const *obj) const;
-    bool is_free_space(int originX, int originY, StructureObject const *obj, bool const *dimension) const;
+    bool is_free_space(int originX, int originY, StructureObject const *obj) const;
+    bool is_unreserved(int originX, int originY, StructureObject const *obj, uint16_t id) const;
     bool is_compatible(int originX, int originY, StructureObject const *obj) const;
     bool is_satisfied(int originX, int originY, StructureObject const *obj) const;
-    bool is_continuable(int originX, int originY, StructureObject const *obj);
+    bool is_continuable(int originX, int originY, StructureObject const *obj, uint16_t requestId);
 
-    void claim_space(int originX, int originY, StructureObject const *obj, bool *dimension);
+    void reserve_space(int originX, int originY, StructureObject const *obj, uint16_t id);
+    void claim_space(int originX, int originY, StructureObject const *obj);
     void place_joints(int originX, int originY, StructureObject const *obj);
 
     struct BuildRequest
@@ -53,7 +55,19 @@ private:
         int y;
         StructureObject const *obj;
         int budget;
+        uint16_t idSrc;
+        uint16_t id;
     };
+    uint16_t uidGenerator = 0;
+
+    inline uint16_t getUID()
+    {
+        ++uidGenerator;
+        if (uidGenerator == 0)
+            ++uidGenerator;
+
+        return uidGenerator;
+    }
 
     misc::ObjectPoolDynamic<BuildRequest, 32> requestPool;
     std::deque<BuildRequest *> buildQueue;
@@ -66,6 +80,8 @@ private:
                                   StructureObject const *obj,
                                   JointCRef const joint,
                                   int budget,
+                                  uint16_t requestId,
+                                  uint16_t requestSrcId,
                                   bool checkContinuity);
 
     BuildRequest *try_request_structure(std::string const &structureId,
@@ -75,6 +91,8 @@ private:
                                         int targetJointDirY,
                                         std::string const &targetTag,
                                         int budget,
+                                        uint16_t requestId,
+                                        uint16_t requestSrcId,
                                         bool checkContinuity);
 
     std::unordered_map<std::string, StructurePlacementChecker> placementCheckers;
